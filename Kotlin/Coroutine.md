@@ -8,13 +8,9 @@
 
 **但是，就我本人常用的语言Java来说，它里面线程也是协作式的。**
 
-
-
 ## 二、协程的基本概念
 
 协程可以让代码执行时**挂起**，并在适当的时候**恢复**。它可以被看作是一个轻量级的线程。它允许我们在不阻塞线程的情况下执行异步操作。
-
-
 
 ## 三、协程的分类
 
@@ -25,16 +21,12 @@
 
 **Kotlin中的协程通过Continuation来保持挂起点的状态，所以Kotlin是无栈协程。**
 
-
-
 ### 3.2 按照调用关系分类
 
 - 对称协程：调度权可以转移给任意的协程，协程之间的关系是对等的
 - 非对称协程：调度权只能转移给调用自己的协程，协程之间存在父子关系
 
 **Kotlin中的协程是非对称协程**
-
-
 
 ## 四、Kotlin协程的基本要素
 
@@ -44,13 +36,9 @@
 
 - 挂起函数只能在在其他挂起函数或协程中执行。
 
-
-
 挂起函数执行时就包含了**挂起**的语义；而挂起函数返回时，包含了**恢复**的语义。
 
 再次加深印象，协程的**核心思想就是挂起/恢复**
-
-
 
 ### 4.2 Continuation
 
@@ -61,12 +49,10 @@
 ```kotlin
 public interface Continuation<in T> {
     public val context: CoroutineContext
-    
+
     public fun resumeWith(result: Result<T>)
 }
 ```
-
-
 
 挂起函数类型
 
@@ -75,13 +61,9 @@ suspend ()->Unit
 suspend (Int)->String
 ```
 
-
-
 似乎和Continuation没啥关系？
 
 挂起函数中并没有出现Continuation！
-
-
 
 其实挂起函数在Java中的样子是类似这样的。对应上面定义的两个挂起函数
 
@@ -91,13 +73,9 @@ suspend (Int)->String
 (Int, conitnuation:Continuation<String>)->Any
 ```
 
-
-
 这个continuation对象不是我们传入的，而是Kotlin编译器给我们传入的！
 
 它是挂起函数的最后一个参数。
-
-
 
 #### 迟来的答案
 
@@ -107,20 +85,14 @@ suspend (Int)->String
 
 而这个continuation只有挂起函数和协程才有。
 
-
-
 #### Continuation的泛型参数
 
 Continuation有一个泛型参数，这个泛型参数类型是挂起函数本身的返回值决定的。
-
-
 
 #### 返回Any的作用
 
 - 当挂起函数没有真正挂起时，Any用来承载返回值真正的结果
 - 当挂起函数挂起时，Any返回的是一个挂起标志COROUTINE_SUSPENDED，让协程体外面的调用者知道我们挂起了。
-
-
 
 #### 如何拿到Continuation？
 
@@ -143,21 +115,15 @@ suspend fun fetchData(): String {
 
 在这个例子中，`suspendCoroutine` 捕获了当前的 `Continuation<String>` 并允许你在异步操作完成后通过调用 `continuation.resumeWith(...)` 来恢复协程。
 
-
-
 #### Continuation什么时候真正的挂起？
 
 当发起真正的异步调用时。也就是常说的切线程。
 
 上面例子就是属于真正挂起了。
 
-
-
 ### 4.3 协程的创建
 
 上面已经提到了协程需要Continuation，那么自然而然的就会带来一个问题，第一个Continuation哪里来的？
-
-
 
 创建协程的API：
 
@@ -174,15 +140,11 @@ public fun <R, T> (suspend R.() -> T).createCoroutine(
 ): Continuation<Unit>
 ```
 
-
-
 createCoroutine会返回一个Continuation的对象，这个对象其实是给我们手动启动协程的。
 
 调用他的resume函数，协程就启动了。他是协程的本体。
 
 协程执行完的时候会resume作用参数的completion，这个也是一个Continuation
-
-
 
 但这样每次创建完都resume一下，显得不太聪明的样子！
 
@@ -190,21 +152,15 @@ createCoroutine会返回一个Continuation的对象，这个对象其实是给�
 
 **startCoroutine**
 
-
-
 #### 创建的这个协程会resume几次呢？
 
 首先，被创建出来Continuation需要被resume一下才能执行，然后completion这个Continuation也会resume一下，最后suspend function本身也是一个Continuation，也会resume一次。
 
 所以是3次。
 
-
-
 如何里面N个真正的挂起点呢，那就是N+2次。
 
 每个挂起点resume一次，外加启动协程时resume协程的本体，还有结束是completion resume一下。
-
-
 
 ### 4.3 CoroutineContext
 
@@ -215,8 +171,6 @@ CoroutineContext.Key
 CoroutineContext.Element
 
 看着就很像一个我们的熟悉的MAP。
-
-
 
 这个东西是可以自定义的。当然官方已经提供了很多特别好用的上下文了。
 
@@ -256,8 +210,6 @@ interface ContinuationInterceptor : CoroutineContext.Element {
 - **状态机**: 当你有一个包含多个挂起点的挂起 lambda 或函数时，Kotlin 编译器会自动生成一个状态机来跟踪该函数/lambda 的执行进度。
 - **Continuation 参数**: 每个挂起函数在编译后都会接收一个额外的 `Continuation` 参数，这是为了能够在挂起点之后恢复执行流程。`SuspendLambda` 同样涉及到与 `Continuation` 的交互以实现这一点。
 
-
-
 ### 4.5 SafeContinuation
 
 `SafeContinuation` 是 Kotlin 协程库内部使用的一个辅助类，它帮助确保 `Continuation` 的调用是安全的，尤其是避免重复调用 `resume` 或 `resumeWithException` 方法，这可能会导致未定义行为或崩溃。虽然 `SafeContinuation` 主要是一个实现细节，并不是直接供开发者使用的 API，但了解它的存在和作用有助于深入理解 Kotlin 协程的工作机制。
@@ -274,11 +226,6 @@ interface ContinuationInterceptor : CoroutineContext.Element {
 - 如果协程尚未被恢复，则正常进行恢复操作。
 - 如果协程已经被恢复，则忽略后续的恢复请求，或者根据具体实现采取其他措施（如抛出异常）。
 
-
-
 ### 4.6 拦截器的调用位置
 
 拦截器实际的调用时机在SafeContinuation 和 `SuspendLambda`之间，既保证了安全性，又会在实际的`SuspendLambda`之前调用。在`SuspendLambda`之前调用当然就能决定`SuspendLambda`跑在什么线程了
-
-
-

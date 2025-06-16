@@ -28,8 +28,6 @@ clip < ~/.ssh/id_rsa.pub
 
 然后登录到代码托管平台，找到 SSH 密钥设置页面，粘贴公钥内容并保存。
 
-
-
 ### 1. 在 GitHub 创建仓库
 
 1. 登录到 GitHub 网站（[https://github.com/](https://github.com/) ）。

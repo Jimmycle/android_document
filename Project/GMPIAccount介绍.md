@@ -320,6 +320,7 @@
       package="com.example.rroproject">
       <overlay android:targetPackage="com.target.app"
                android:overlay="true"
+               //...
                android:isStatic="false"/>
   </manifest>
   ```
